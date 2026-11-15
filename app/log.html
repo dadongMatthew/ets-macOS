@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>桥接日志</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #1e1f22; color: #d6d8dc; font: 12px/1.6 ui-monospace, Menlo, monospace; }
+  #bar { position: sticky; top: 0; display: flex; gap: 8px; align-items: center; padding: 8px 12px;
+         background: #2a2c30; border-bottom: 1px solid #3a3d42; }
+  #bar button { background: #3a3d42; color: #d6d8dc; border: 0; border-radius: 5px; padding: 4px 10px; cursor: pointer; }
+  #bar button:hover { background: #4a4e55; }
+  #log { padding: 10px 12px; white-space: pre-wrap; word-break: break-all; }
+  .ERROR { color: #ff7b72; }
+  .WARN { color: #e3b341; }
+  .INFO { color: #9aa4b2; }
+  .path { margin-left: auto; opacity: .6; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <button id="clear">清空</button>
+  <button id="open">打开日志文件</button>
+  <label><input type="checkbox" id="auto" checked /> 自动滚动</label>
+  <span class="path" id="path"></span>
+</div>
+<div id="log"></div>
+<script>
+  const { ipcRenderer } = require('electron');
+  const box = document.getElementById('log');
+  const auto = document.getElementById('auto');
+  function add(line) {
+    const cls = line.includes('[ERROR]') ? 'ERROR' : line.includes('[WARN]') ? 'WARN' : 'INFO';
+    const div = document.createElement('div');
+    div.className = cls;
+    div.textContent = line;
+    box.appendChild(div);
+    if (auto.checked) window.scrollTo(0, document.body.scrollHeight);
+    if (box.childElementCount > 5000) box.removeChild(box.firstChild);
+  }
+  ipcRenderer.on('log:line', (e, line) => add(line));
+  document.getElementById('clear').onclick = () => { box.innerHTML = ''; };
+  document.getElementById('open').onclick = () => ipcRenderer.send('log:reveal');
+</script>
+</body>
+</html>

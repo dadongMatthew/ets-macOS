@@ -1,0 +1,14 @@
+{
+  "name": "ets-mac-shell",
+  "version": "1.0.6",
+  "description": "E听说 macOS 兼容外壳（CEF -> Electron 桥接层）",
+  "main": "app/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "electron": "^31.7.7"
+  }
+}

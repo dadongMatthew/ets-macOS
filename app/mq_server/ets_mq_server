@@ -1,0 +1,5 @@
+#!/bin/sh
+# 对应 Windows 的 ets_mq_server.exe：页面会先检查这个文件是否存在。
+# 真正的服务由主进程内嵌启动（app/mq_server/main.js），这里仅作占位与手动启动入口。
+DIR=$(cd "$(dirname "$0")" && pwd)
+exec "${ETS_NODE:-node}" "$DIR/main.js" "$(cd "$DIR/.." && pwd)"

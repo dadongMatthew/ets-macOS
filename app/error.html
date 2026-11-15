@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>E听说</title>
+<style>
+  body { margin: 0; height: 100vh; display: flex; flex-direction: column; align-items: center;
+         justify-content: center; font: 14px/1.8 -apple-system, "PingFang SC", sans-serif; color: #5b6169;
+         background: #fff; -webkit-app-region: drag; }
+  h2 { font-size: 17px; font-weight: 500; color: #2b2f33; margin: 0 0 6px; }
+  button { -webkit-app-region: no-drag; margin-top: 18px; padding: 8px 22px; font-size: 14px;
+           border: 1px solid #d9dde2; background: #fff; border-radius: 6px; cursor: pointer; }
+  button:hover { border-color: #2f7cf6; color: #2f7cf6; }
+  .tip { font-size: 12px; color: #9aa1a9; }
+</style>
+</head>
+<body>
+  <h2>页面加载失败</h2>
+  <div>请检查网络连接后重试。若处于公司/学校网络，可能需要关闭代理。</div>
+  <div class="tip">错误详情见「桥接日志」（⌘L）</div>
+  <button onclick="location.replace(document.referrer || 'https://statics.ets100.com/ets-student-pc-web/index.html')">重新加载</button>
+</body>
+</html>

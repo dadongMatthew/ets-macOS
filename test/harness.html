@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>桥接层自测</title>
+<style>
+  body { font: 13px/1.7 -apple-system, "PingFang SC", sans-serif; margin: 24px; color: #222; }
+  .ok { color: #1a7f37; } .fail { color: #c62828; } .run { color: #8a6d3b; }
+  pre { background: #f6f8fa; padding: 10px; border-radius: 6px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h2>cef.message 桥接自测</h2>
+<p>用官方 <code>plugins/stic/*.js</code> 封装调用本地实现，验证参数/回调契约是否一致。</p>
+<div id="out"></div>
+
+<script src="vendor/appcontroller.js"></script>
+<script src="vendor/shellhelper.js"></script>
+<script src="vendor/filehelper.js"></script>
+<script src="vendor/sqlitepln.js"></script>
+<script src="vendor/sevenzip.js"></script>
+<script src="vendor/sndhelper.js"></script>
+<script src="vendor/httphelper.js"></script>
+<script src="vendor/etshelper.js"></script>
+<script>
+const results = [];
+const out = document.getElementById('out');
+function log(name, ok, detail) {
+  results.push({ name, ok: !!ok, detail });
+  const d = document.createElement('div');
+  d.className = ok ? 'ok' : 'fail';
+  d.textContent = `${ok ? '✔' : '✘'} ${name} — ${typeof detail === 'string' ? detail : JSON.stringify(detail)}`;
+  out.appendChild(d);
+}
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+function timed(promise, ms = 4000) {
+  return Promise.race([promise, wait(ms).then(() => { throw new Error('timeout'); })]);
+}
+
+async function main() {
+  // ---------- 1. cef 基础 ----------
+  log('cef.message 存在', !!(window.cef && cef.message && cef.message.sendMessage));
+  log('createGuid 唯一', cef.message.createGuid() !== cef.message.createGuid());
+
+  // ---------- 2. AppController ----------
+  const app = new AppController({ topDomId: 'noop' });
+  await timed(new Promise((res) => app.init({}, (d) => res(d)))).then(
+    (d) => log('AppController.init', d === '0' || d === '', `返回 ${d}`),
+    (e) => log('AppController.init', false, e.message)
+  );
+  await timed(new Promise((res) => app.OnGetWinPos({}, (d) => res(d)))).then(
+    (d) => { const p = JSON.parse(d); log('AppController.get_win_pos', p.win_w > 0, p); },
+    (e) => log('AppController.get_win_pos', false, e.message)
+  );
+  await timed(new Promise((res) => app.OnSetWinPos({ win_x: -1, win_y: -1, win_w: 1100, win_h: 760 }, (d) => res(d))))
+    .then((d) => log('AppController.set_win_pos(居中)', d === '0', d), (e) => log('AppController.set_win_pos', false, e.message));
+
+  // ---------- 3. ShellHelper ----------
+  const shell = new ShellHelper({});
+  const cfg = await timed(new Promise((res) => shell.getconfig((d) => res(d))));
+  let cfgObj = {};
+  try { cfgObj = JSON.parse(cfg); } catch (e) { /* ignore */ }
+  log('ShellHelper.getconfig', !!cfgObj.AppTitle, cfgObj.AppTitle);
+  const uid = await timed(new Promise((res) => shell.getuniqueid((d) => res(d))));
+  log('ShellHelper.getuniqueid', typeof uid === 'string' && uid.length >= 16, uid);
+  const vol = await timed(new Promise((res) => shell.getvolume('output', (d) => res(d))));
+  log('ShellHelper.getvolume', /^\d+$/.test(String(vol)), vol);
+  const audio = await timed(new Promise((res) => shell.CheckAudio(null, (d) => res(d))));
+  log('ShellHelper.CheckAudio', audio === '1', audio);
+
+  // ---------- 4. FileHelper ----------
+  const fh = new FileHelper({});
+  await timed(new Promise((res) => fh.init({}, (d) => res(d))));
+  const testFile = './localdata/selftest.txt';
+  await timed(new Promise((res) => fh.writefile(testFile, 'hello-ets', (d) => res(d))));
+  const text = await timed(new Promise((res) => fh.readfile(testFile, (d) => res(d))));
+  log('FileHelper 写/读文本', text === 'hello-ets', text);
+  const existRaw = await timed(new Promise((res) => fh.existfileorfloder(testFile, (d) => res(d))));
+  let exist = false;
+  try { exist = !!JSON.parse(existRaw).result; } catch (e) { exist = false; }
+  log('FileHelper.existfileorfolder', exist, existRaw);
+  const md5 = await timed(new Promise((res) => fh.getmd5(testFile, (d) => res(d))));
+  log('FileHelper.getmd5', /^[a-f0-9]{32}$/.test(md5), md5);
+  const b64 = await timed(new Promise((res) => fh.getbase64(testFile, null, (d) => res(d))));
+  log('FileHelper.getbase64', b64 === btoa('hello-ets'), b64);
+
+  // ---------- 5. SqlitePln（页面真正用到的 Config 表） ----------
+  const sqlite = new SqlitePln({});
+  await timed(new Promise((res) => sqlite.init((d) => res(d))));
+  await timed(new Promise((res) => sqlite.connect({ dbpath: './localdata/ETS.db', password: '' }, (d) => res(d))));
+  const q = await timed(new Promise((res) => sqlite.query({ sql: 'SELECT * FROM Config' }, (d) => res(d))));
+  let cfgRows = [];
+  try {
+    const parsed = JSON.parse(q);
+    const arr = JSON.parse(parsed.data);
+    cfgRows = arr.map((x) => (typeof x === 'string' ? JSON.parse(x) : x));
+  } catch (e) { /* ignore */ }
+  log('sqlitepln 查询 Config', cfgRows.length > 0, `${cfgRows.length} 行，例：${JSON.stringify(cfgRows[0] || {})}`);
+
+  // ---------- 6. EtsHelper ----------
+  const ets = new EtsHelper({});
+  await timed(new Promise((res) => ets.init({}, (d) => res(d))));
+  const appdata = await timed(new Promise((res) => ets.get_appdata_path((d) => res(d))));
+  log('EtsHelper.get_appdata_path', typeof appdata === 'string' && appdata.length > 0, appdata);
+
+  // ---------- 7. 音频：扫描一个 wav，拿时长和波形 ----------
+  const snd = new SndHelper({}, () => {});
+  await timed(new Promise((res) => snd.init({}, (d) => res(d))));
+  const scan = await new Promise((res) => {
+    let begin = null;
+    snd.loadfile(
+      appdata.replace(/\/$/, '') + '/localdata/record_test.wav',
+      (d) => res({ ack: d, begin }),
+      (d) => { begin = d; },
+      (d) => res({ ack: 'scanend', begin, end: d })
+    );
+    setTimeout(() => res({ ack: 'timeout' }), 4000);
+  });
+  let scanEnd = null;
+  try { scanEnd = JSON.parse(scan.end); } catch (e) { scanEnd = scan.end; }
+  log('soundhelper.loadfile(波形/时长)', !!(scanEnd && scanEnd.time_len > 0),
+    scanEnd ? `时长 ${scanEnd.time_len}s，波形点 ${(scanEnd.waveform || []).length}` : JSON.stringify(scan));
+
+  // ---------- 汇总 ----------
+  const pass = results.filter((r) => r.ok).length;
+  const summary = `\n通过 ${pass}/${results.length}\n` + results.map((r) => `${r.ok ? 'PASS' : 'FAIL'}\t${r.name}\t${typeof r.detail === 'string' ? r.detail : JSON.stringify(r.detail)}`).join('\n');
+  document.title = `自测 ${pass}/${results.length}`;
+  const pre = document.createElement('pre');
+  pre.textContent = summary;
+  out.appendChild(pre);
+  // 落盘，方便在终端核对
+  fh.writefile('./localdata/selftest-result.json', JSON.stringify({ pass, total: results.length, results }, null, 2), () => {});
+  console.log('[selftest]', summary);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  main().catch((e) => {
+    log('自测异常', false, e.message);
+  });
+});
+</script>
+</body>
+</html>

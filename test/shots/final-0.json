@@ -1,0 +1,18 @@
+{
+  "url": "https://statics.ets100.com/ets-student-pc-web/index.html#/auth/privacy",
+  "inputs": 0,
+  "htmlLen": 70531,
+  "frames": [
+    {
+      "src": "http://www.ets100.com/pc-html/privacy_reg.html",
+      "w": 418,
+      "h": 391
+    }
+  ],
+  "loginHtml": null,
+  "loginRect": null,
+  "loginStyle": null,
+  "vueApp": true,
+  "errs": [],
+  "txt": "注册协议与隐私政策 同意 不同意 ？"
+}

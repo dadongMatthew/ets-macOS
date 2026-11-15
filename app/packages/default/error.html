@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>页面加载失败</title>
+    <script src="./appcontroller.js"></script>
+    <style>
+      body {
+        position: relative;
+        margin: 0;
+        overflow: hidden;
+      }
+      .error-header {
+        display: flex;
+        justify-content: flex-end;
+        padding: 20px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .error-header .btn-close{
+        padding: 0;
+        border: none;
+        width: 18px;
+        height: 18px;
+        background: url(./Icon_Top_Tool_Close_Normal.png) no-repeat 0 0 / cover;
+        cursor: pointer;
+      }
+      .error-header .btn-close:hover{
+        background-image: url(./Icon_Top_Tool_Close_Hover.png);
+      }
+      .error-header .btn-close:active{
+        background-image: url(./Icon_Top_Tool_Close_Pushed.png);
+      }
+      .error-page {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .error-page .title {
+        margin-top: 30px;
+        font-size: 24px;
+        font-weight: 700;
+        text-align: center;
+        color: #7c828b;
+        line-height: 36px;
+      }
+      .error-page .detail {
+        margin: 20px 0 0;
+        font-size: 14px;
+        font-weight: 400;
+        color: #7c828b;
+        line-height: 21px;
+      }
+      .error-page .btn-retry {
+        margin-top: 40px;
+        width: 160px;
+        height: 47px;
+        background: #45de88;
+        border: none;
+        border-radius: 24px;
+        box-shadow: 0px 5px 31px 0px rgba(0, 0, 0, 0.35);
+        font-size: 16px;
+        font-weight: 700;
+        text-align: center;
+        color: #ffffff;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="error-header" id="errorHeader">
+      <button class="btn-close" id="jsClose"></button>
+    </header>
+    <article class="error-page">
+      <img src="./Icon_Error.png" width="126" height="126" />
+      <h2 class="title">页面加载失败</h2>
+      <div class="detail">网络链接中断，请确认网络正常后重试</div>
+      <button class="btn-retry" id="jsRetry">刷新重试</button>
+    </article>
+    <script>
+      var winInfo = {
+        win_name: '讯飞E听说中学',
+        win_class: 'SHELL'
+      }
+      var libInst = new AppController({
+        topDomId: 'errorHeader',
+        init_callback() {},
+        move_callback: function (obj, startPoint, endPoint) {
+          libInst.OnMoveWindow(startPoint, endPoint)
+        }
+      })
+      libInst.init(winInfo)
+      document.getElementById('jsClose').onclick = function () {
+        libInst.OnClose(winInfo)
+      }
+      document.getElementById('jsRetry').onclick = function () {
+        // location.href = cef.message.getHomeUrl()
+        history.back()
+      }
+    </script>
+  </body>
+</html>
